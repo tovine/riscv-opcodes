@@ -39,4 +39,7 @@ instr-table.tex: $(ALL_OPCODES) parse_opcodes
 priv-instr-table.tex: $(ALL_OPCODES) parse_opcodes
 	cat $(ALL_OPCODES) | ./parse_opcodes -privtex > $@
 
+all-instr-table.tex: $(ALL_OPCODES) parse_opcodes
+	./parse_opcodes -alltex $(ALL_OPCODES) > $@
+
 .PHONY : install

@@ -819,6 +819,35 @@ def print_inst(n):
   else:
     print_r_type(n, match[n], arguments[n])
 
+def get_header_types(list_of_names):
+  headers = []
+  for n in list_of_names:
+    if 'imm20' in arguments[n]:
+      if 'u' not in headers:
+        headers.append('u')
+    elif 'jimm20' in arguments[n]:
+      if 'uj' not in headers:
+        headers.append('uj')
+    elif 'shamt' in arguments[n] or 'shamtw' in arguments[n] or 'imm12' in arguments[n] or n == 'ecall' or n == 'ebreak' or n[:3] == 'csr':
+      if 'i' not in headers:
+        headers.append('i')
+    elif 'imm12hi' in arguments[n]:
+      if 's' not in headers:
+        headers.append('s')
+    elif 'bimm12hi' in arguments[n]:
+      if 'sb' not in headers:
+        headers.append('sb')
+    elif 'rs3' in arguments[n]:
+      if 'r4' not in headers:
+        headers.append('r4')
+    else:
+      if 'r' not in headers:
+        headers.append('r')
+  # Ugly hack because everything expects tuples and they must be unpacked at the receiving end to make it work, I feel dirty... :(
+  while len(headers) < 7:
+    headers.append('')
+  return tuple(headers)
+
 def print_insts(*names):
   for n in names:
     print_inst(n)
@@ -1128,6 +1157,36 @@ if __name__ == "__main__":
     make_latex_table()
   elif sys.argv[1] == '-privtex':
     make_supervisor_latex_table()
+  elif sys.argv[1] == '-alltex':
+    # Re-read files one by one and dump in a table with a header and subtitle for each
+    print("% Called with -alltex, arguments:", sys.argv[2:])
+    for infilename in (sys.argv[2:]):
+      if infilename in ('opcodes-rvc', 'opcodes-rv32c', 'opcodes-rv64c'):
+        continue
+      insns_printed = 0
+      # Reset global lists before continuing this way
+      namelist  = []
+      pseudos   = {}
+      mask      = OrderedDict()
+      match     = OrderedDict()
+      arguments = {}
+      print("% Infile:", infilename)
+      parse_inputs([infilename])
+      # I hate that I have to do this to make it work...
+      (h1,h2,h3,h4,h5,h6,h7) = get_header_types(namelist)
+      print("% Headers:", (h1,h2,h3,h4,h5,h6,h7))
+      print_header(h1,h2,h3,h4,h5,h6,h7)
+      print_subtitle(infilename)
+      for name in namelist:
+        if insns_printed > 42 and insns_printed != len(namelist):
+          print_footer()
+          print_header(h1,h2,h3,h4,h5,h6,h7)
+          print_subtitle(infilename + ", cont'd")
+          insns_printed = 0
+        print_inst(name)
+        insns_printed = insns_printed + 1
+      print_footer()
+
   elif sys.argv[1] == '-chisel':
     make_chisel()
   elif sys.argv[1] == '-sverilog':
